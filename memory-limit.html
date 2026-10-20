@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>10GB Browser RAM Test</title>
+</head>
+<body>
+    <h1>Browser RAM Allocation Test</h1>
+    <p>Check your Chrome Task Manager to watch the memory grow.</p>
+    <p id="status">Waiting...</p>
+
+    <script>
+        // 134,217,728 Float64 elements * 8 bytes = 1 GiB per chunk.
+        const CHUNK_ELEMENTS = 134217728;
+        const TARGET_GB = 10;
+
+        // Keep references globally so the garbage collector doesn't clean them up
+        window.leakedMemory = [];
+
+        function allocateMemory() {
+            const status = document.getElementById("status");
+            console.log("Allocating memory...");
+
+            // Allocate in 1 GiB chunks - a single 10 GiB ArrayBuffer is refused outright
+            for (let i = 1; i <= TARGET_GB; i++) {
+                try {
+                    const chunk = new Float64Array(CHUNK_ELEMENTS);
+                    // Fill the array to force the OS to actually assign physical RAM
+                    chunk.fill(1.0);
+                    window.leakedMemory.push(chunk);
+                    console.log(`Holding ~${i} GiB`);
+                } catch (e) {
+                    status.textContent = `Stopped at ~${i - 1} GiB: ${e.message}`;
+                    console.error(status.textContent);
+                    return;
+                }
+            }
+
+            status.textContent = `Allocation complete! Holding ~${TARGET_GB} GiB`;
+            console.log(status.textContent);
+        }
+
+        window.addEventListener("load", allocateMemory);
+    </script>
+</body>
+</html>
